@@ -1,0 +1,64 @@
+-- =============================================
+-- [Thực hành] Stored Procedure trong MySQL
+-- Database: classicmodels
+-- =============================================
+
+-- Chọn cơ sở dữ liệu làm việc
+USE classicmodels;
+
+-- =============================================
+-- Bước 1: Tạo Stored Procedure đầu tiên
+-- Tên procedure: findAllCustomers
+-- Mục đích: Lấy toàn bộ danh sách khách hàng
+-- =============================================
+
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS `findAllCustomers` //
+
+CREATE PROCEDURE findAllCustomers()
+BEGIN
+    SELECT * FROM customers;
+END //
+
+DELIMITER ;
+
+
+-- =============================================
+-- Bước 2: Gọi Stored Procedure vừa tạo
+-- =============================================
+
+CALL findAllCustomers();
+
+
+-- =============================================
+-- Bước 3: Sửa Stored Procedure
+-- Lưu ý: MySQL không hỗ trợ lệnh sửa trực tiếp phần thân logic,
+-- nên ta dùng DROP PROCEDURE IF EXISTS rồi tiến hành CREATE PROCEDURE mới.
+-- Mục đích: Lấy thông tin khách hàng có customerNumber = 175
+-- =============================================
+
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS `findAllCustomers` //
+
+CREATE PROCEDURE findAllCustomers()
+BEGIN
+    SELECT * FROM customers WHERE customerNumber = 175;
+END //
+
+DELIMITER ;
+
+
+-- =============================================
+-- Bước 4: Gọi lại Stored Procedure sau khi cập nhật
+-- =============================================
+
+CALL findAllCustomers();
+
+
+-- =============================================
+-- Bước 5: Xóa Stored Procedure khi không còn sử dụng
+-- =============================================
+
+-- DROP PROCEDURE IF EXISTS `findAllCustomers`;
