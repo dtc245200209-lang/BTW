@@ -1,0 +1,88 @@
+-- =====================================================================
+-- DỰ ÁN: TỐI ƯU HÓA HỆ THỐNG MẠNG XÃ HỘI "QUICKFEED"
+-- File: quickfeed_index_optimization.sql
+-- Vai trò: Database Administrator (DBA)
+-- =====================================================================
+
+CREATE DATABASE IF NOT EXISTS quickfeed_db;
+USE quickfeed_db;
+
+-- Tái hiện cấu trúc bảng Posts và trạng thái Over-Indexing ban đầu
+DROP TABLE IF EXISTS Posts;
+CREATE TABLE Posts (
+    post_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    content TEXT,
+    post_type VARCHAR(10),               -- Chỉ có 3 giá trị: 'TEXT', 'IMAGE', 'VIDEO'
+    is_visible BOOLEAN DEFAULT 1,        -- Chỉ có 2 giá trị: 0 hoặc 1
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Khởi tạo 5 Index ban đầu (Legacy Script)
+CREATE INDEX idx_user_id ON Posts(user_id);
+CREATE INDEX idx_content ON Posts(content(255));
+CREATE INDEX idx_post_type ON Posts(post_type);
+CREATE INDEX idx_is_visible ON Posts(is_visible);
+CREATE INDEX idx_created_at ON Posts(created_at);
+
+-- =====================================================================
+-- BƯỚC 1: ĐO LƯỜNG VÀ KIỂM TRA TÀI NGUYÊN TRƯỚC KHI TỐI ƯU
+-- =====================================================================
+
+-- 1.1. Kiểm tra danh sách Index và Cardinality hiện tại
+SHOW INDEX FROM Posts;
+
+-- 1.2. Xem trạng thái tổng quan của bảng Posts
+SHOW TABLE STATUS LIKE 'Posts';
+
+-- 1.3. Đo lường kích thước Data và Index (tính bằng MB) từ information_schema.TABLES
+SELECT 
+    table_name AS `Table Name`,
+    ROUND((data_length / (1024 * 1024)), 2) AS `Data Size (MB)`,
+    ROUND((index_length / (1024 * 1024)), 2) AS `Index Size (MB)`,
+    ROUND(((data_length + index_length) / (1024 * 1024)), 2) AS `Total Size (MB)`
+FROM 
+    information_schema.TABLES
+WHERE 
+    table_schema = 'quickfeed_db' 
+    AND table_name = 'Posts';
+
+
+-- =====================================================================
+-- BƯỚC 2: TIẾN HÀNH DROP 3 INDEX VÔ GIÁ TRỊ
+-- =====================================================================
+
+-- 2.1. Xóa idx_content: Prefix index trên TEXT tốn dung lượng cực lớn (255 ký tự ~ 1.020 bytes/node ở UTF8MB4),
+-- không tối ưu cho tìm kiếm nội dung (giải pháp thay thế là FULLTEXT Index hoặc Elasticsearch).
+ALTER TABLE Posts DROP INDEX idx_content;
+
+-- 2.2. Xóa idx_post_type: Cardinality cực thấp (chỉ có 3 giá trị), MySQL Optimizer sẽ bỏ qua và quét bảng.
+ALTER TABLE Posts DROP INDEX idx_post_type;
+
+-- 2.3. Xóa idx_is_visible: Cột BOOLEAN chỉ có 2 giá trị (0 và 1), trong đó ~95-99% bài viết là 1 (Hiện).
+-- Index này hoàn toàn vô dụng, gây tốn tài nguyên bảo trì cây B-Tree.
+ALTER TABLE Posts DROP INDEX idx_is_visible;
+
+-- GIỮ LẠI:
+-- - idx_user_id: Cardinality cao, phục vụ lọc bài viết trên trang cá nhân.
+-- - idx_created_at: Phục vụ sắp xếp bài viết Newsfeed theo thời gian mới nhất (ORDER BY created_at DESC).
+
+
+-- =====================================================================
+-- BƯỚC 3: ĐO LƯỜNG VÀ ĐỐI CHIẾU HỆ THỐNG SAU KHI TỐI ƯU
+-- =====================================================================
+
+-- 3.1. Kiểm tra lại danh sách Index còn lại
+SHOW INDEX FROM Posts;
+
+-- 3.2. Đo lường lại kích thước Index sau khi loại bỏ 3 Index dư thừa
+SELECT 
+    table_name AS `Table Name`,
+    ROUND((data_length / (1024 * 1024)), 2) AS `Data Size (MB)`,
+    ROUND((index_length / (1024 * 1024)), 2) AS `Index Size (MB)`,
+    ROUND(((data_length + index_length) / (1024 * 1024)), 2) AS `Total Size (MB)`
+FROM 
+    information_schema.TABLES
+WHERE 
+    table_schema = 'quickfeed_db' 
+    AND table_name = 'Posts';
