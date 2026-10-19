@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Định dạng văn bản với CSS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <article class="container">
+        <!-- Tiêu đề chính -->
+        <h1 class="main-title">Khám Phá Nghệ Thuật Định Dạng Văn Bản Với CSS</h1>
+        
+        <!-- Phụ đề / Tác giả -->
+        <p class="subtitle">Tác giả: CodeGym Developer | Xuất bản ngày: 19/10/2026</p>
+
+        <!-- Trích dẫn / Lời mở đầu -->
+        <p class="quote">
+            "Typography trong thiết kế web không chỉ đơn thuần là việc chọn font chữ, mà là nghệ thuật truyền tải cảm xúc và tối ưu trải nghiệm đọc của người dùng."
+        </p>
+
+        <!-- Đoạn văn bản 1 có thụt đầu dòng (text-indent) và căn đều (justify) -->
+        <p class="paragraph">
+            CSS (Cascading Style Sheets) cung cấp một bộ công cụ vô cùng phong phú để lập trình viên có thể kiểm soát và định hình từng chi tiết của văn bản. Bằng cách kết hợp linh hoạt các thuộc tính như kích thước chữ, khoảng cách dòng, độ thụt lề và sự hài hòa của màu sắc, chúng ta có thể biến những đoạn nội dung thô sơ thành một tác phẩm trực quan sinh động và cuốn hút.
+        </p>
+
+        <!-- Đoạn văn bản 2 -->
+        <p class="paragraph highlight-paragraph">
+            Thuộc tính <strong>text-indent</strong> đóng vai trò quan trọng trong việc tạo điểm nhấn cho đoạn mở đầu theo phong cách in ấn truyền thống. Cùng với đó, việc căn đều nội dung hai bên (<strong>text-align: justify</strong>) mang lại cảm giác trang trọng, liền mạch và giúp người đọc dễ dàng theo dõi dòng chảy của văn bản.
+        </p>
+
+        <!-- Tiêu đề mục phụ -->
+        <h2 class="section-title">Các thuộc tính cốt lõi đã áp dụng</h2>
+        
+        <ul class="feature-list">
+            <li><strong>font-size:</strong> Thiết lập kích thước chữ phân tầng từ tiêu đề lớn (30px) đến văn bản thường (16px).</li>
+            <li><strong>font-style:</strong> Tạo chữ nghiêng (italic) tinh tế cho phần trích dẫn và phụ đề.</li>
+            <li><strong>text-align:</strong> Căn giữa (center) cho tiêu đề và căn đều hai lề (justify) cho các đoạn văn.</li>
+            <li><strong>text-indent:</strong> Thụt lề dòng đầu tiên 30px giúp phân đoạn rõ ràng.</li>
+            <li><strong>color:</strong> Phối màu hiện đại (xanh navy, xám đen, xanh lá) tăng độ tương phản và dễ đọc.</li>
+            <li><strong>line-height:</strong> Giãn dòng 1.7 giúp mắt không bị mỏi khi đọc nội dung dài.</li>
+        </ul>
+
+        <footer class="footer-note">
+            &copy; 2026 Bài tập thực hành CSS Typography - Hoàn thành xuất sắc.
+        </footer>
+    </article>
+
+</body>
+</html>
+/* ==========================================================================
+   [Bài tập] Định dạng văn bản với CSS
+   Tệp: style.css
+   ========================================================================== */
+
+/* Cài đặt chung toàn trang */
+body {
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #334155;                 /* color: màu chữ cơ bản */
+    line-height: 1.7;               /* khoảng cách dòng */
+    margin: 0;
+    padding: 40px 20px;
+}
+
+/* Khung chứa bài viết */
+.container {
+    max-width: 750px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 40px 50px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+}
+
+/* 1. Tiêu đề chính */
+.main-title {
+    font-size: 30px;                /* font-size: cỡ chữ tiêu đề */
+    color: #1e3a8a;                 /* color: màu xanh navy đậm */
+    text-align: center;             /* text-align: căn giữa */
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    text-transform: capitalize;
+}
+
+/* 2. Phụ đề / tác giả */
+.subtitle {
+    font-size: 14px;                /* font-size: chữ nhỏ */
+    font-style: italic;             /* font-style: in nghiêng */
+    color: #64748b;                 /* color: màu xám nhạt */
+    text-align: center;             /* text-align: căn giữa */
+    margin-bottom: 30px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 15px;
+}
+
+/* 3. Khối trích dẫn (Quote) */
+.quote {
+    font-size: 16px;
+    font-style: italic;             /* font-style: in nghiêng */
+    color: #475569;
+    text-align: center;             /* text-align: căn giữa */
+    background-color: #f1f5f9;
+    padding: 16px 24px;
+    border-left: 4px solid #3b82f6;
+    border-radius: 4px;
+    margin: 25px 0;
+}
+
+/* 4. Đoạn văn bản thông thường */
+.paragraph {
+    font-size: 16px;                /* font-size: cỡ chữ chuẩn */
+    color: #1e293b;                 /* color: màu đen xám dễ đọc */
+    text-align: justify;            /* text-align: căn đều 2 bên */
+    text-indent: 30px;              /* text-indent: thụt đầu dòng 30px */
+    margin-bottom: 16px;
+}
+
+/* Đoạn văn bản nổi bật */
+.highlight-paragraph {
+    background-color: #fefce8;
+    padding: 12px 16px;
+    border-radius: 6px;
+    border: 1px dashed #facc15;
+}
+
+/* 5. Tiêu đề mục phụ */
+.section-title {
+    font-size: 20px;
+    color: #0f172a;
+    text-align: left;               /* text-align: căn trái */
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-left: 4px solid #10b981;
+    padding-left: 10px;
+}
+
+/* 6. Danh sách tính năng */
+.feature-list {
+    font-size: 15px;
+    color: #334155;
+    padding-left: 20px;
+}
+
+.feature-list li {
+    margin-bottom: 10px;
+}
+
+/* 7. Footer ghi chú */
+.footer-note {
+    margin-top: 40px;
+    text-align: center;             /* text-align: căn giữa */
+    font-size: 13px;
+    color: #94a3b8;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 15px;
+}
