@@ -1,0 +1,37 @@
+-- =============================================
+-- [Thực hành] View trong MySQL
+-- Database: classicmodels
+-- =============================================
+
+USE classicmodels;
+
+-- =============================================
+-- Bước 1: Tạo View customer_views
+-- Mục đích: Lấy customerNumber, customerName, phone từ bảng customers
+-- =============================================
+CREATE VIEW customer_views AS
+SELECT customerNumber, customerName, phone
+FROM customers;
+
+-- Truy vấn dữ liệu từ bảng ảo customer_views
+SELECT * FROM customer_views;
+
+
+-- =============================================
+-- Bước 2: Cập nhật View (CREATE OR REPLACE VIEW)
+-- Mục đích: Thêm contactFirstName, contactLastName và lọc theo city = 'Nantes'
+-- =============================================
+CREATE OR REPLACE VIEW customer_views AS
+SELECT customerNumber, customerName, contactFirstName, contactLastName, phone
+FROM customers
+WHERE city = 'Nantes';
+
+-- Truy vấn kiểm tra lại dữ liệu từ view sau khi đã cập nhật
+SELECT * FROM customer_views;
+
+
+-- =============================================
+-- Bước 3: Xóa View (DROP VIEW)
+-- Mục đích: Xóa view customer_views khỏi database khi không còn sử dụng
+-- =============================================
+DROP VIEW customer_views;
