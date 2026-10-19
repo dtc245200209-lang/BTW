@@ -1,0 +1,172 @@
+-- =====================================================================
+-- [Bài tập] View, Index, Stored Procedure
+-- Database: demo
+-- File: demo.sql
+-- =====================================================================
+
+-- =============================================
+-- BƯỚC 1: TẠO CƠ SỞ DỮ LIỆU DEMO
+-- =============================================
+CREATE DATABASE IF NOT EXISTS demo;
+USE demo;
+
+
+-- =============================================
+-- BƯỚC 2: TẠO BẢNG PRODUCTS VÀ CHÈN DỮ LIỆU MẪU
+-- =============================================
+DROP TABLE IF EXISTS Products;
+CREATE TABLE Products (
+    Id INT AUTO_INCREMENT PRIMARY KEY,
+    productCode VARCHAR(50) NOT NULL,
+    productName VARCHAR(100) NOT NULL,
+    productPrice DECIMAL(12, 2) NOT NULL,
+    productAmount INT NOT NULL,
+    productDescription TEXT,
+    productStatus VARCHAR(20) DEFAULT 'Active'
+);
+
+-- Chèn dữ liệu mẫu vào bảng Products
+INSERT INTO Products (productCode, productName, productPrice, productAmount, productDescription, productStatus) VALUES
+('P001', 'Laptop Dell XPS 13', 28000000.00, 10, 'Laptop văn phòng mỏng nhẹ cao cấp', 'Active'),
+('P002', 'MacBook Air M2', 26500000.00, 15, 'Chip M2, RAM 8GB, SSD 256GB', 'Active'),
+('P003', 'iPhone 15 Pro Max', 31900000.00, 20, 'Titan tự nhiên, 256GB', 'Active'),
+('P004', 'Bàn phím cơ Keychron K2', 1850000.00, 30, 'Bàn phím cơ Bluetooth không dây', 'Active'),
+('P005', 'Màn hình Dell UltraSharp 27', 10500000.00, 8, 'Độ phân giải 2K IPS chuẩn đồ họa', 'Inactive');
+
+-- Kiểm tra dữ liệu vừa chèn
+SELECT * FROM Products;
+
+
+-- =============================================
+-- BƯỚC 3: TẠO VÀ KHẢO SÁT CHỈ MỤC (INDEX)
+-- =============================================
+
+-- 3.1. Khảo sát câu truy vấn TRƯỚC KHI tạo Index
+-- Quan sát kết quả: type = ALL (Full Table Scan), key = NULL
+EXPLAIN SELECT * FROM Products WHERE productCode = 'P002';
+EXPLAIN SELECT * FROM Products WHERE productName = 'MacBook Air M2' AND productPrice = 26500000.00;
+
+-- 3.2. Tạo Unique Index trên cột productCode
+CREATE UNIQUE INDEX idx_productCode ON Products(productCode);
+
+-- 3.3. Tạo Composite Index trên 2 cột (productName, productPrice)
+CREATE INDEX idx_name_price ON Products(productName, productPrice);
+
+-- 3.4. Khảo sát câu truy vấn SAU KHI tạo Index
+-- So sánh:
+-- - Với productCode: type chuyển từ ALL thành 'const', key = 'idx_productCode', rows = 1 (tối ưu tuyệt đối)
+-- - Với composite: type chuyển từ ALL thành 'ref', key = 'idx_name_price', rows = 1
+EXPLAIN SELECT * FROM Products WHERE productCode = 'P002';
+EXPLAIN SELECT * FROM Products WHERE productName = 'MacBook Air M2' AND productPrice = 26500000.00;
+
+
+-- =============================================
+-- BƯỚC 4: LÀM VIỆC VỚI VIEW
+-- =============================================
+
+-- 4.1. Tạo View lấy về: productCode, productName, productPrice, productStatus
+CREATE VIEW view_products AS
+SELECT productCode, productName, productPrice, productStatus
+FROM Products;
+
+-- Truy vấn dữ liệu từ View
+SELECT * FROM view_products;
+
+-- 4.2. Sửa đổi View (CREATE OR REPLACE VIEW)
+-- Ví dụ: Bổ sung thêm cột productAmount và chỉ lấy sản phẩm có trạng thái 'Active'
+CREATE OR REPLACE VIEW view_products AS
+SELECT productCode, productName, productPrice, productAmount, productStatus
+FROM Products
+WHERE productStatus = 'Active';
+
+-- Kiểm tra lại View sau khi cập nhật
+SELECT * FROM view_products;
+
+-- 4.3. Xóa View
+DROP VIEW view_products;
+
+
+-- =============================================
+-- BƯỚC 5: LÀM VIỆC VỚI STORED PROCEDURE
+-- =============================================
+
+-- 5.1. Procedure lấy tất cả thông tin của tất cả sản phẩm
+DELIMITER //
+DROP PROCEDURE IF EXISTS `getAllProducts` //
+CREATE PROCEDURE getAllProducts()
+BEGIN
+    SELECT * FROM Products;
+END //
+DELIMITER ;
+
+-- Gọi Procedure
+CALL getAllProducts();
+
+
+-- 5.2. Procedure thêm một sản phẩm mới
+DELIMITER //
+DROP PROCEDURE IF EXISTS `addNewProduct` //
+CREATE PROCEDURE addNewProduct(
+    IN p_code VARCHAR(50),
+    IN p_name VARCHAR(100),
+    IN p_price DECIMAL(12, 2),
+    IN p_amount INT,
+    IN p_description TEXT,
+    IN p_status VARCHAR(20)
+)
+BEGIN
+    INSERT INTO Products (productCode, productName, productPrice, productAmount, productDescription, productStatus)
+    VALUES (p_code, p_name, p_price, p_amount, p_description, p_status);
+END //
+DELIMITER ;
+
+-- Gọi Procedure thêm sản phẩm mới
+CALL addNewProduct('P006', 'Chuột Logitech MX Master 3S', 2490000.00, 25, 'Chuột công thái học cao cấp', 'Active');
+CALL getAllProducts();
+
+
+-- 5.3. Procedure sửa thông tin sản phẩm theo id
+DELIMITER //
+DROP PROCEDURE IF EXISTS `updateProductById` //
+CREATE PROCEDURE updateProductById(
+    IN p_id INT,
+    IN p_code VARCHAR(50),
+    IN p_name VARCHAR(100),
+    IN p_price DECIMAL(12, 2),
+    IN p_amount INT,
+    IN p_description TEXT,
+    IN p_status VARCHAR(20)
+)
+BEGIN
+    UPDATE Products
+    SET productCode = p_code,
+        productName = p_name,
+        productPrice = p_price,
+        productAmount = p_amount,
+        productDescription = p_description,
+        productStatus = p_status
+    WHERE Id = p_id;
+END //
+DELIMITER ;
+
+-- Gọi Procedure sửa thông tin sản phẩm Id = 1
+CALL updateProductById(1, 'P001', 'Laptop Dell XPS 13 Plus', 31000000.00, 12, 'Bản nâng cấp 2024 bàn phím cảm ứng', 'Active');
+SELECT * FROM Products WHERE Id = 1;
+
+
+-- 5.4. Procedure xóa sản phẩm theo id
+DELIMITER //
+DROP PROCEDURE IF EXISTS `deleteProductById` //
+CREATE PROCEDURE deleteProductById(
+    IN p_id INT
+)
+BEGIN
+    DELETE FROM Products WHERE Id = p_id;
+END //
+DELIMITER ;
+
+-- Gọi Procedure xóa sản phẩm Id = 5
+CALL deleteProductById(5);
+
+-- Kiểm tra lại danh sách sản phẩm sau khi xóa
+CALL getAllProducts();
