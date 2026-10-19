@@ -1,0 +1,54 @@
+USE classicmodels;
+
+-- ========================================================
+-- 1. Tạo và gọi Store Procedure với tham số loại IN (+30 điểm)
+-- ========================================================
+DELIMITER //
+CREATE PROCEDURE getCusById
+(IN cusNum INT(11))
+BEGIN
+  SELECT * FROM customers WHERE customerNumber = cusNum;
+END //
+DELIMITER ;
+
+CALL getCusById(175);
+
+
+-- ========================================================
+-- 2. Tạo và gọi Store Procedure với tham số loại OUT (+30 điểm)
+-- ========================================================
+DELIMITER //
+CREATE PROCEDURE GetCustomersCountByCity(
+    IN in_city VARCHAR(50),
+    OUT total INT
+)
+BEGIN
+    SELECT COUNT(customerNumber)
+    INTO total
+    FROM customers
+    WHERE city = in_city;
+END //
+DELIMITER ;
+
+CALL GetCustomersCountByCity('Lyon', @total);
+SELECT @total;
+
+
+-- ========================================================
+-- 3. Tạo và gọi Store Procedure với tham số loại INOUT (+30 điểm)
+-- ========================================================
+DELIMITER //
+CREATE PROCEDURE SetCounter(
+    INOUT counter INT,
+    IN inc INT
+)
+BEGIN
+    SET counter = counter + inc;
+END //
+DELIMITER ;
+
+SET @counter = 1;
+CALL SetCounter(@counter, 1); -- 2
+CALL SetCounter(@counter, 1); -- 3
+CALL SetCounter(@counter, 5); -- 8
+SELECT @counter; -- 8
