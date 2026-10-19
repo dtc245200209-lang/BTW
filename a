@@ -1,0 +1,44 @@
+-- ============================================================================
+-- BÀI TẬP: TRUY VẤN DỮ LIỆU VỚI CSDL QUẢN LÝ SINH VIÊN
+-- ============================================================================
+
+-- BƯỚC 1: Chọn cơ sở dữ liệu làm việc
+USE `QuanLySinhVien`;
+
+-- YÊU CẦU 1: Hiển thị tất cả các sinh viên có tên bắt đầu bảng ký tự ‘h’
+-- Giải pháp: Sử dụng toán tử LIKE kết hợp ký tự đại diện '%'
+SELECT * 
+FROM `Student` 
+WHERE `StudentName` LIKE 'h%';
+
+-- YÊU CẦU 2: Hiển thị các thông tin lớp học có thời gian bắt đầu vào tháng 12
+-- Giải pháp: Sử dụng hàm MONTH() để trích xuất tháng từ trường StartDate
+SELECT * 
+FROM `Class` 
+WHERE MONTH(`StartDate`) = 12;
+
+-- YÊU CẦU 3: Hiển thị tất cả các thông tin môn học có credit trong khoảng từ 3-5
+-- Giải pháp: Sử dụng toán tử BETWEEN ... AND ...
+SELECT * 
+FROM `Subject` 
+WHERE `Credit` BETWEEN 3 AND 5;
+
+-- YÊU CẦU 4: Thay đổi mã lớp (ClassID) của sinh viên có tên ‘Hung’ là 2
+-- Giải pháp: Sử dụng lệnh UPDATE
+UPDATE `Student` 
+SET `ClassId` = 2 
+WHERE `StudentName` = 'Hung';
+
+-- YÊU CẦU 5: Hiển thị thông tin: StudentName, SubName, Mark. 
+-- Sắp xếp theo điểm thi giảm dần, nếu trùng sắp theo tên tăng dần.
+-- Giải pháp: JOIN 3 bảng và dùng ORDER BY với nhiều điều kiện
+SELECT 
+    S.StudentName, 
+    Sub.SubName, 
+    M.Mark
+FROM `Student` S
+JOIN `Mark` M ON S.StudentId = M.StudentId
+JOIN `Subject` Sub ON M.SubId = Sub.SubId
+ORDER BY 
+    M.Mark DESC, 
+    S.StudentName ASC;
