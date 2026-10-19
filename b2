@@ -1,0 +1,61 @@
+USE QuanLyBanHang;
+
+-- 1. Thêm dữ liệu bảng Customer
+INSERT INTO Customer (cID, Name, cAge)
+VALUES
+(1, 'Minh Quan', 10),
+(2, 'Ngoc Oanh', 20),
+(3, 'Hong Ha', 50);
+
+-- 2. Thêm dữ liệu bảng Order
+INSERT INTO `Order` (oID, cID, oDate, oTotalPrice)
+VALUES
+(1, 1, '2006-03-21', NULL),
+(2, 2, '2006-03-23', NULL),
+(3, 1, '2006-03-16', NULL);
+
+-- 3. Thêm dữ liệu bảng Product
+INSERT INTO Product (pID, pName, pPrice)
+VALUES
+(1, 'May Giat', 3),
+(2, 'Tu Lanh', 5),
+(3, 'Dieu Hoa', 7),
+(4, 'Quat', 1),
+(5, 'Bep Dien', 2);
+
+-- 4. Thêm dữ liệu bảng OrderDetail
+INSERT INTO OrderDetail (oID, pID, odQTY)
+VALUES
+(1, 1, 3),
+(1, 3, 7),
+(1, 4, 2),
+(2, 1, 3),
+(2, 5, 4),
+(2, 3, 3);
+SELECT oID, oDate, oTotalPrice
+FROM `Order`;
+SELECT Customer.Name, Product.pName
+FROM Customer
+JOIN `Order` ON Customer.cID = `Order`.cID
+JOIN OrderDetail ON `Order`.oID = OrderDetail.oID
+JOIN Product ON OrderDetail.pID = Product.pID;
+SELECT Customer.Name
+FROM Customer
+LEFT JOIN `Order` ON Customer.cID = `Order`.cID
+WHERE `Order`.oID IS NULL;
+SELECT `Order`.oID,
+       `Order`.oDate,
+       SUM(OrderDetail.odQTY * Product.pPrice) AS oPrice
+FROM `Order`
+JOIN OrderDetail ON `Order`.oID = OrderDetail.oID
+JOIN Product ON OrderDetail.pID = Product.pID
+GROUP BY `Order`.oID, `Order`.oDate;
+UPDATE `Order`
+SET oTotalPrice = (
+    SELECT SUM(OrderDetail.odQTY * Product.pPrice)
+    FROM OrderDetail
+    JOIN Product ON OrderDetail.pID = Product.pID
+    WHERE OrderDetail.oID = `Order`.oID
+);
+SELECT oID, oDate, oTotalPrice
+FROM `Order`;
