@@ -1,0 +1,45 @@
+-- =============================================
+-- [Thực hành] Trigger trong MySQL
+-- =============================================
+
+-- Bước 1: Tạo CSDL company và bảng employees
+CREATE DATABASE IF NOT EXISTS company;
+USE company;
+
+DROP TABLE IF EXISTS employees;
+CREATE TABLE employees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    department VARCHAR(50) NOT NULL,
+    salary DECIMAL(10,2) NOT NULL
+);
+
+-- Bước 2: Tạo Trigger update_department
+-- Tự động cập nhật phòng ban (department) tương ứng với mức lương khi INSERT
+DELIMITER //
+
+DROP TRIGGER IF EXISTS `update_department` //
+
+CREATE TRIGGER update_department
+BEFORE INSERT ON employees
+FOR EACH ROW
+BEGIN
+    IF NEW.salary >= 5000 THEN
+        SET NEW.department = 'Management';
+    ELSEIF NEW.salary >= 3000 THEN
+        SET NEW.department = 'Sales';
+    ELSE
+        SET NEW.department = 'Support';
+    END IF;
+END //
+
+DELIMITER ;
+
+-- Bước 3: Thêm dữ liệu demo để kích hoạt Trigger
+INSERT INTO employees (name, department, salary) VALUES
+('John Doe', 'A', 3500),
+('Jane Smith', 'A', 2000),
+('David Johnson', 'A', 6000);
+
+-- Kiểm tra kết quả (department sẽ tự động đổi từ 'A' thành Sales, Support, Management)
+SELECT * FROM employees;
