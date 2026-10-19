@@ -1,0 +1,59 @@
+-- =============================================
+-- [Thực hành] Chỉ mục trong MySQL
+-- Database: classicmodels
+-- =============================================
+
+-- Chọn cơ sở dữ liệu
+USE classicmodels;
+
+-- =============================================
+-- Bước 1: Khảo sát truy vấn khi CHƯA có Index
+-- =============================================
+
+-- 1. Truy vấn thông tin khách hàng bình thường
+SELECT * FROM customers WHERE customerName = 'Land of Toys Inc.';
+
+-- 2. Dùng EXPLAIN để kiểm tra kế hoạch thực thi:
+-- Kết quả quan sát:
+-- - type: ALL (Quét toàn bộ bảng - Full table scan)
+-- - possible_keys: NULL
+-- - rows: Quét qua toàn bộ bản ghi của bảng customers
+EXPLAIN SELECT * FROM customers WHERE customerName = 'Land of Toys Inc.';
+
+
+-- =============================================
+-- Bước 2: Tạo chỉ mục đơn (Single-column Index)
+-- =============================================
+
+-- 1. Thêm chỉ mục cho cột customerName
+ALTER TABLE customers ADD INDEX idx_customerName(customerName);
+
+-- 2. Dùng EXPLAIN kiểm tra lại:
+-- Kết quả quan sát:
+-- - type: ref (Tối ưu hơn nhiều so với ALL)
+-- - possible_keys: idx_customerName
+-- - key: idx_customerName
+-- - rows: 1 (Chỉ cần duyệt đúng 1 dòng tìm thấy)
+EXPLAIN SELECT * FROM customers WHERE customerName = 'Land of Toys Inc.';
+
+
+-- =============================================
+-- Bước 3: Tạo chỉ mục phức hợp (Composite Index)
+-- =============================================
+
+-- 1. Thêm chỉ mục theo cặp (contactFirstName, contactLastName)
+ALTER TABLE customers ADD INDEX idx_full_name(contactFirstName, contactLastName);
+
+-- 2. Kiểm tra hiệu quả truy vấn với điều kiện tìm kiếm trên cột đã đánh index
+EXPLAIN SELECT * FROM customers WHERE contactFirstName = 'Jean' OR contactFirstName = 'King';
+
+
+-- =============================================
+-- Bước 4: Xóa chỉ mục (Drop Index)
+-- =============================================
+
+-- 1. Xóa chỉ mục idx_full_name khỏi bảng customers
+ALTER TABLE customers DROP INDEX idx_full_name;
+
+-- 2. (Tùy chọn) Xóa chỉ mục idx_customerName nếu muốn hoàn trả cấu trúc bảng ban đầu
+-- ALTER TABLE customers DROP INDEX idx_customerName;
