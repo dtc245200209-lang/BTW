@@ -1,0 +1,78 @@
+-- ============================================================================
+-- BÀI TẬP: BÁO CÁO TỬ THẦN TẠI VÍ ĐIỆN TỬ PAYFLOW
+-- FILE TỔNG HỢP: SQL OPTIMIZATION + EXPLAIN ANALYSIS + AI PROMPT LOG
+-- ============================================================================
+
+-- ============================================================================
+-- PHẦN 1: PAYFLOW_OPTIMIZED.SQL (MÃ NGUỒN TỐI ƯU HÓA)
+-- ============================================================================
+
+USE payflow_db;
+
+-- 1. Tạo Composite Index để khắc phục Full Table Scan
+-- Đặt transaction_type đứng trước (toán tử =) và created_at đứng sau (toán tử Range)
+CREATE INDEX idx_type_date ON Transactions(transaction_type, created_at);
+
+-- 2. Truy vấn đã được tái cấu trúc (SARGable Query)
+-- Thay thế hàm YEAR() và MONTH() bằng khoảng thời gian (Range) để B-Tree Index hoạt động
+EXPLAIN 
+SELECT SUM(amount) AS total_deposit
+FROM Transactions
+WHERE transaction_type = 'DEPOSIT' 
+  AND created_at >= '2026-06-01 00:00:00' 
+  AND created_at < '2026-07-01 00:00:00';
+
+
+/*
+============================================================================
+PHẦN 2: EXPLAIN_ANALYSIS.MD (BÁO CÁO PHÂN TÍCH EXPLAIN)
+============================================================================
+
+1. Trước khi tối ưu (Legacy Script):
+- type: ALL (Full Table Scan)
+- rows: ~5,000,000 dòng (quét toàn bộ bảng)
+- Nguyên nhân: Việc bọc hàm YEAR() và MONTH() quanh cột created_at khiến truy vấn 
+  trở thành Non-SARGable. Database không thể dùng B-Tree Index mà phải đọc từng 
+  dòng rồi tính toán hàm, làm vọt CPU 100% và gây lock bảng.
+
+2. Sau khi tối ưu (SARGable Script + Composite Index):
+- type: range (hoặc ref)
+- possible_keys / key: idx_type_date
+- rows: Giảm đột phá từ 5 triệu dòng xuống chỉ còn đúng số dòng trong tháng 06/2026.
+- Extra: Using index condition
+
+Kết luận: Việc chuyển điều kiện bọc hàm sang phép so sánh khoảng (>= và <) 
+đã giúp truy vấn đạt chuẩn SARGable, kích hoạt Composite Index và triệt tiêu 
+hoàn toàn Full Table Scan.
+============================================================================
+*/
+
+
+/*
+============================================================================
+PHẦN 3: AI_PROMPT_LOG.MD (NHẬT KÝ TƯƠNG TÁC AI)
+============================================================================
+
+1. Khám phá bản chất Non-SARGable:
+- Prompt: "Trong MySQL, nếu tôi tạo Index cho một cột ngày tháng, nhưng mệnh đề 
+  WHERE lại viết WHERE YEAR(created_at) = 2026, tại sao MySQL lại từ chối sử dụng 
+  Index và phải Full Table Scan?"
+- Insight: Khi bọc hàm lên cột, B-Tree Index bị vô hiệu hóa vì hệ thống không thể 
+  so sánh giá trị trực tiếp trên các nút của cây Index, buộc phải quét toàn bộ 
+  bảng để tính toán kết quả hàm cho từng dòng.
+
+2. Chiến lược thiết kế Composite Index:
+- Prompt: "Khi thiết kế Composite Index cho (transaction_type, created_at), 
+  thứ tự các cột có quan trọng không? Cột nào nên đứng trước?"
+- Insight: Theo nguyên tắc Leftmost Prefixing, cột sử dụng phép so sánh bằng (=) 
+  phải đặt trước để thu hẹp không gian tìm kiếm, cột sử dụng so sánh khoảng (Range) 
+  đặt sau vì điều kiện Range sẽ làm ngừng hiệu lực của các cột Index đứng phía sau nó.
+
+3. Phân tích kết quả Extra:
+- Prompt: "Trong EXPLAIN, 'Using index condition' khác gì với 'Using index' (Covering Index)?"
+- Insight: "Using index" có nghĩa là toàn bộ dữ liệu cần lấy đều nằm trên Index. 
+  Trong khi "Using index condition" (Index Condition Pushdown) có nghĩa là Engine 
+  dùng Index để lọc điều kiện nhanh nhất, sau đó mới Lookup về bảng chính để lấy 
+  giá trị cột amount tính SUM.
+============================================================================
+*/
