@@ -1,0 +1,41 @@
+USE payflow_db;
+
+-- 1. Tạo Composite Index tối ưu cho mệnh đề WHERE
+-- Đặt cột 'transaction_type' (toán tử =) trước, 'created_at' (toán tử Range) sau
+CREATE INDEX idx_type_date ON Transactions(transaction_type, created_at);
+
+-- 2. Truy vấn đã tái cấu trúc chuẩn SARGable
+-- Loại bỏ hàm YEAR() và MONTH() bọc trên cột created_at, chuyển thành so sánh khoảng (Range)
+EXPLAIN 
+SELECT SUM(amount) AS total_deposit
+FROM Transactions
+WHERE transaction_type = 'DEPOSIT' 
+  AND created_at >= '2026-06-01 00:00:00' 
+  AND created_at < '2026-07-01 00:00:00';
+# Báo Cáo Phân Tích Kế Hoạch Thực Thi (EXPLAIN)
+
+**1. Trạng thái trước khi tối ưu (Legacy Script):**
+* **type:** `ALL` (Full Table Scan).
+* **rows:** ~5,000,000 dòng.
+* **Đánh giá:** Việc dùng hàm `YEAR()` và `MONTH()` bọc quanh cột `created_at` khiến truy vấn bị vô hiệu hóa B-Tree Index (Non-SARGable). MySQL buộc phải duyệt qua toàn bộ 5 triệu dòng dữ liệu và tính toán hàm cho từng dòng, gây ngốn CPU 100% và treo bảng.
+
+**2. Trạng thái sau khi tối ưu (SARGable Script & Composite Index):**
+* **type:** Chuyển sang `range` (hoặc `ref`).
+* **possible_keys / key:** Tận dụng thành công `idx_type_date`.
+* **rows:** Giảm từ 5,000,000 xuống còn đúng số dòng phát sinh giao dịch trong tháng 6/2026.
+* **Extra:** Hiển thị `Using index condition`.
+
+**Kết luận:** Truy vấn chuẩn SARGable giúp MySQL tận dụng cơ chế tìm kiếm nhị phân của B-Tree Index, giải quyết dứt điểm sự cố nghẽn CPU và Table Lock.
+# Nhật Ký Tương Tác Kỹ Thuật AI (Prompt Log)
+
+**1. Tìm hiểu bản chất Non-SARGable:**
+* **Prompt:** "Trong MySQL, nếu tôi tạo Index cho một cột ngày tháng, nhưng trong mệnh đề WHERE tôi lại viết WHERE YEAR(col) = 2026, tại sao MySQL lại từ chối sử dụng Index và phải quét toàn bộ bảng (Full Table Scan)?"
+* **Insight:** B-Tree Index lưu giá trị gốc đã sắp xếp. Khi áp dụng hàm lên cột, MySQL không thể dùng cấu trúc cây để tra cứu trực tiếp mà phải duyệt qua từng dòng để tính giá trị hàm rồi mới so sánh.
+
+**2. Chiến lược thiết kế Composite Index:**
+* **Prompt:** "Khi thiết kế một Composite Index trong MySQL cho cột (transaction_type, created_at), thứ tự các cột trong Index có quan trọng không? Tôi nên đặt cột nào đứng trước để có hiệu suất lọc dữ liệu tốt nhất?"
+* **Insight:** Cột dùng toán tử so sánh bằng (`=`) phải đứng trước để thu hẹp không gian tìm kiếm nhanh nhất (Leftmost Prefixing). Cột dùng so sánh khoảng (Range: `>=`, `<`) phải đứng sau.
+
+**3. Đọc hiểu chỉ số EXPLAIN Extra:**
+* **Prompt:** "Trong kết quả EXPLAIN, cột 'Extra' hiện chữ 'Using index condition' khác gì với 'Using index' (Covering Index)?"
+* **Insight:** `Using index condition` (Index Condition Pushdown) có nghĩa là MySQL dùng Index để lọc dữ liệu ở tầng Engine, sau đó tra cứu về bảng chính (Table Lookup) để lấy cột `amount` phục vụ tính `SUM()`.
