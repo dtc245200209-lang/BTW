@@ -1,0 +1,80 @@
+-- =====================================================================
+-- DỰ ÁN: GIẢI CỨU HỆ THỐNG IoT "SMARTFACTORY"
+-- File: smartfactory_reindex.sql
+-- Vai trò: Database Optimization Expert
+-- =====================================================================
+
+CREATE DATABASE IF NOT EXISTS smartfactory_db;
+USE smartfactory_db;
+
+DROP TABLE IF EXISTS SensorLogs;
+CREATE TABLE SensorLogs (
+    log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sensor_id INT NOT NULL,
+    recorded_at DATETIME NOT NULL,
+    temperature DECIMAL(5,2),
+    humidity DECIMAL(5,2),
+    status VARCHAR(20) -- 'NORMAL', 'WARNING', 'CRITICAL'
+);
+
+-- =====================================================================
+-- BƯỚC 1: TÁI HIỆN THẢM HỌA "FAT COVERING INDEX"
+-- =====================================================================
+
+-- Lập trình viên cũ nhồi nhét tất cả các cột vào Composite Index
+CREATE INDEX idx_fat_covering ON SensorLogs(sensor_id, recorded_at, temperature, humidity, status);
+
+-- 1.1. Đo lường dung lượng Data và Index trước khi tối ưu
+SELECT 
+    table_name AS `Table Name`,
+    ROUND((data_length / (1024 * 1024)), 2) AS `Data Size (MB)`,
+    ROUND((index_length / (1024 * 1024)), 2) AS `Index Size (MB)`,
+    ROUND(((data_length + index_length) / (1024 * 1024)), 2) AS `Total Size (MB)`
+FROM 
+    information_schema.TABLES
+WHERE 
+    table_schema = 'smartfactory_db' 
+    AND table_name = 'SensorLogs';
+
+-- 1.2. Khảo sát truy vấn Dashboard khi còn Fat Index
+-- Kết quả: Extra có "Using index" (Covering Index - không cần đọc bảng gốc)
+EXPLAIN SELECT temperature, humidity, status 
+FROM SensorLogs 
+WHERE sensor_id = 105 AND recorded_at >= '2026-06-20';
+
+
+-- =====================================================================
+-- BƯỚC 2: CHUYỂN ĐỔI SANG LEAN INDEX TINH GỌN
+-- =====================================================================
+
+-- 2.1. Xóa Fat Index gây quá tải dung lượng và sụp đổ tốc độ INSERT
+ALTER TABLE SensorLogs DROP INDEX idx_fat_covering;
+
+-- 2.2. Tạo Lean Index tinh gọn: chỉ giữ lại 2 cột định vị trong mệnh đề WHERE
+CREATE INDEX idx_lean_search ON SensorLogs(sensor_id, recorded_at);
+
+
+-- =====================================================================
+-- BƯỚC 3: ĐỐI CHIẾU HỆ THỐNG SAU KHI TỐI ƯU
+-- =====================================================================
+
+-- 3.1. Đo lường lại kích thước Index sau khi thay thế
+SELECT 
+    table_name AS `Table Name`,
+    ROUND((data_length / (1024 * 1024)), 2) AS `Data Size (MB)`,
+    ROUND((index_length / (1024 * 1024)), 2) AS `Index Size (MB)`,
+    ROUND(((data_length + index_length) / (1024 * 1024)), 2) AS `Total Size (MB)`
+FROM 
+    information_schema.TABLES
+WHERE 
+    table_schema = 'smartfactory_db' 
+    AND table_name = 'SensorLogs';
+
+-- 3.2. Khảo sát lại truy vấn Dashboard với Lean Index
+-- Kết quả:
+-- - key: idx_lean_search
+-- - type: range (vẫn tối ưu tuyệt đối cho việc quét khoảng thời gian của sensor_id)
+-- - Extra: Using index condition (MySQL thực hiện bookmark lookup để lấy temperature, humidity, status)
+EXPLAIN SELECT temperature, humidity, status 
+FROM SensorLogs 
+WHERE sensor_id = 105 AND recorded_at >= '2026-06-20';
